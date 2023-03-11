@@ -99,7 +99,6 @@ if __name__ == "__main__":
     except:
         tree = dict()
 
-    ws_url = requests.post(ws_api_url, headers={"Authorization": "Bearer " + ws_token}).json()
-    print(ws_url)
+    ws_url = requests.post(ws_api_url, headers={"Authorization": "Bearer " + ws_token}).json()['url']
 
     connect_websocket(ws_url)
