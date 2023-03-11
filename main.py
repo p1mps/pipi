@@ -5,9 +5,6 @@ import websocket
 import json
 import threading, time
 
-
-
-
 def get_sentence(tree, k):
     if tree[k] == []:
         return k
@@ -41,19 +38,12 @@ def merge_trees(tree1, tree2):
         tree1.update({k: list(set(values + tree2.get(k, [])))})
     return tree1
 
-
-
-
-
-
 def on_error(ws, error):
     print("error")
     print(error)
 
 def on_close(ws, close_status_code, close_msg):
     print("closing websocket")
-    print ("Retry : %s" % time.ctime())
-    time.sleep(10)
     connect_websocket()
 
 def on_open(ws):
@@ -72,19 +62,18 @@ def on_message(ws, message):
     match message_event['type']:
         case "message":
             if bot_id == None:
-                print("its a message!")
                 message_tree = generate_tree(message_text)
                 tree = merge_trees(tree, message_tree)
                 with open(r'tree.txt','w') as f:
                     f.write(str(tree))
         case "app_mention":
-            print("its a mention!")
             sentence = generate_sentence(tree,random.choice(list(tree.keys())))
             message_payload = dict(channel=message_channel, text=sentence)
             message_post = requests.post(message_api_url, json=message_payload,  headers={"Authorization": "Bearer " + api_token}).json()
 
 
-def connect_websocket(ws_url):
+def connect_websocket():
+    ws_url = requests.post(ws_api_url, headers={"Authorization": "Bearer " + ws_token}).json()['url']
     ws = websocket.WebSocketApp(ws_url, on_open = on_open, on_close = on_close, on_message = on_message)
     ws.run_forever()
 
@@ -99,6 +88,4 @@ if __name__ == "__main__":
     except:
         tree = dict()
 
-    ws_url = requests.post(ws_api_url, headers={"Authorization": "Bearer " + ws_token}).json()['url']
-
-    connect_websocket(ws_url)
+    connect_websocket()
