@@ -3,18 +3,10 @@ import random
 import requests
 import websocket
 import json
-import pickle
+import threading, time
 
-message = "I like pussy I like pasta I like pussy I like dogs"
-ws_token = "xapp-1-A04T2R50WDD-4935429363122-a6dbe0662484dd1bbe9d02d0b677f418be8a8654efcb79250bbc3b4814c125d9"
-ws_api_url = "https://slack.com/api/apps.connections.open"
-message_api_url = "https://slack.com/api/chat.postMessage"
-api_token = "xoxb-500173009233-4928817611110-1pxqFw7IRjsE0BTrYUuElQK8"
 
-try:
-    tree = eval(open("tree.txt", "r").read())
-except:
-    tree = dict()
+
 
 def get_sentence(tree, k):
     if tree[k] == []:
@@ -49,11 +41,23 @@ def merge_trees(tree1, tree2):
         tree1.update({k: list(set(values + tree2.get(k, [])))})
     return tree1
 
-ws_url = requests.post(ws_api_url, headers={"Authorization": "Bearer " + ws_token}).json()['url']
+
+
+
+
 
 def on_error(ws, error):
     print("error")
     print(error)
+
+def on_close(ws, close_status_code, close_msg):
+    print("closing websocket")
+    print ("Retry : %s" % time.ctime())
+    time.sleep(10)
+    connect_websocket()
+
+def on_open(ws):
+    print('connection established')
 
 def on_message(ws, message):
     global tree
@@ -80,8 +84,22 @@ def on_message(ws, message):
             message_post = requests.post(message_api_url, json=message_payload,  headers={"Authorization": "Bearer " + api_token}).json()
 
 
-ws = websocket.WebSocketApp(ws_url,
-                            on_message=on_message,
-                            on_error=on_error)
+def connect_websocket(ws_url):
+    ws = websocket.WebSocketApp(ws_url, on_open = on_open, on_close = on_close, on_message = on_message)
+    ws.run_forever()
 
-ws.run_forever()
+if __name__ == "__main__":
+    ws_token = str(open("ws_token.txt", "r").read()).replace('\n', '')
+    api_token = str(open("api_token.txt", "r").read()).replace('\n', '')
+    ws_api_url = "https://slack.com/api/apps.connections.open"
+    message_api_url = "https://slack.com/api/chat.postMessage"
+
+    try:
+        tree = eval(open("tree.txt", "r").read())
+    except:
+        tree = dict()
+
+    ws_url = requests.post(ws_api_url, headers={"Authorization": "Bearer " + ws_token}).json()
+    print(ws_url)
+
+    connect_websocket(ws_url)
